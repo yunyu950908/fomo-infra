@@ -16,6 +16,7 @@ variable "traefik_version" {
   description = "Traefik 版本"
   type        = string
   default     = "3.5"
+}
 
 variable "image_repository" {
   description = "Traefik 镜像仓库"
