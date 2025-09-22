@@ -42,6 +42,7 @@ resource "local_file" "local_path_config" {
   file_permission = "0644"
 }
 
+
 # 创建存储目录
 resource "null_resource" "create_storage_dir" {
   provisioner "local-exec" {
@@ -122,9 +123,22 @@ resource "null_resource" "configure_storage" {
 
   provisioner "local-exec" {
     command = <<-EOT
-      export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+      # 等待 local-path-provisioner 部署完成
+      echo "等待 local-path-provisioner 就绪..."
+      for i in {1..30}; do
+        if sudo k3s kubectl get deployment -n kube-system local-path-provisioner >/dev/null 2>&1; then
+          echo "local-path-provisioner 已就绪"
+          break
+        fi
+        echo "等待中... ($i/30)"
+        sleep 2
+      done
+
+      # 只需要更新配置，K3s 自带 StorageClass
+      echo "更新 local-path 配置..."
       sudo k3s kubectl apply -f ${local_file.local_path_config.filename}
-      sudo k3s kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+      echo "Local-path 存储配置完成"
     EOT
   }
 }
