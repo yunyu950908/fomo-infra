@@ -15,7 +15,7 @@ variable "release_name" {
 variable "traefik_version" {
   description = "Traefik 版本"
   type        = string
-  default     = "3.0.0"
+  default     = "3.5.2"  # 2024年9月最新稳定版
 }
 
 variable "image_repository" {

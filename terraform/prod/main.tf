@@ -5,26 +5,26 @@ terraform {
   required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.0"
+      version = "~> 2.38"  # 2025年最新稳定版
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.0"
+      version = "~> 3.0"   # 2025年6月发布的稳定版，支持 Helm 3.x
     }
     local = {
       source  = "hashicorp/local"
-      version = "~> 2.0"
+      version = "~> 2.5"   # 最新稳定版
     }
     null = {
       source  = "hashicorp/null"
-      version = "~> 3.0"
+      version = "~> 3.2"   # 最新稳定版
     }
   }
 }
 
 # K3s 集群部署
 module "k3s" {
-  source = "./modules/k3s"
+  source = "../modules/k3s"
 
   k3s_version        = var.k3s_version
   cluster_cidr       = var.cluster_cidr
@@ -42,7 +42,7 @@ module "k3s" {
 
 # 基础服务部署 - 暂时注释，等 K3s 部署完成后再启用
 # module "portainer" {
-#   source = "./modules/portainer"
+#   source = "../modules/portainer"
 #
 #   namespace      = var.portainer_namespace
 #   release_name   = var.portainer_release_name
@@ -52,20 +52,22 @@ module "k3s" {
 #   depends_on = [module.k3s]
 # }
 
-# module "traefik" {
-#   source = "./modules/traefik"
-#
-#   namespace     = var.traefik_namespace
-#   release_name  = var.traefik_release_name
-#   chart_version = var.traefik_chart_version
-#   external_port = var.traefik_external_port
-#
-#   depends_on = [module.k3s]
-# }
+module "traefik" {
+  source = "../modules/traefik"
+
+  # 只传递需要自定义的值，其他使用模块默认值
+  namespace    = var.traefik_namespace
+  release_name = var.traefik_release_name
+
+  # 版本和端口已在模块中定义默认值，无需重复指定
+  # 如需覆盖，可通过 variables.tf 传递
+
+  depends_on = [module.k3s]
+}
 
 # 监控系统部署 - 暂时注释，等 K3s 部署完成后再启用
 # module "prometheus" {
-#   source = "./modules/prometheus"
+#   source = "../modules/prometheus"
 #
 #   namespace         = var.monitoring_namespace
 #   release_name      = "prometheus"
@@ -99,7 +101,7 @@ module "k3s" {
 # }
 
 # module "grafana" {
-#   source = "./modules/grafana"
+#   source = "../modules/grafana"
 #
 #   namespace     = var.monitoring_namespace
 #   release_name  = "grafana"
@@ -151,7 +153,7 @@ module "k3s" {
 # }
 
 # module "alertmanager" {
-#   source = "./modules/alertmanager"
+#   source = "../modules/alertmanager"
 #
 #   namespace         = var.monitoring_namespace
 #   release_name      = "alertmanager"
@@ -226,7 +228,7 @@ module "k3s" {
 
 # 数据库服务部署 - 暂时注释，等 K3s 部署完成后再启用
 # module "mongodb" {
-#   source = "./modules/mongodb"
+#   source = "../modules/mongodb"
 #
 #   namespace     = var.mongodb_namespace
 #   release_name  = var.mongodb_release_name
@@ -264,7 +266,7 @@ module "k3s" {
 # }
 
 # module "redis" {
-#   source = "./modules/redis"
+#   source = "../modules/redis"
 #
 #   namespace     = var.redis_namespace
 #   release_name  = var.redis_release_name
@@ -312,7 +314,7 @@ module "k3s" {
 # }
 
 # module "rabbitmq" {
-#   source = "./modules/rabbitmq"
+#   source = "../modules/rabbitmq"
 #
 #   namespace     = var.rabbitmq_namespace
 #   release_name  = var.rabbitmq_release_name

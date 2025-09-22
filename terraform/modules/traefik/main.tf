@@ -5,15 +5,15 @@ terraform {
   required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"
-      version = "~> 2.23"
+      version = "~> 2.38"
     }
     helm = {
       source  = "hashicorp/helm"
-      version = "~> 2.11"
+      version = "~> 3.0"   # 3.0 已稳定，支持 Helm 3.x
     }
     http = {
       source  = "hashicorp/http"
-      version = "~> 3.4"
+      version = "~> 3.5"
     }
   }
 }
@@ -135,7 +135,7 @@ resource "kubernetes_service" "traefik" {
   }
 
   spec {
-    type = "NodePort"
+    type = "ClusterIP"  # 使用 ClusterIP，因为 HostPort 已经处理了外部访问
 
     selector = {
       app = var.release_name
@@ -145,7 +145,6 @@ resource "kubernetes_service" "traefik" {
       name        = "web"
       port        = 80
       target_port = "web"
-      node_port   = var.web_node_port
       protocol    = "TCP"
     }
 
@@ -153,7 +152,6 @@ resource "kubernetes_service" "traefik" {
       name        = "websecure"
       port        = 443
       target_port = "websecure"
-      node_port   = var.websecure_node_port
       protocol    = "TCP"
     }
 
@@ -161,14 +159,13 @@ resource "kubernetes_service" "traefik" {
       name        = "dashboard"
       port        = 8080
       target_port = "dashboard"
-      node_port   = var.dashboard_node_port
       protocol    = "TCP"
     }
   }
 }
 
-# 创建部署
-resource "kubernetes_deployment" "traefik" {
+# 创建 DaemonSet（作为统一网关，每个节点一个实例）
+resource "kubernetes_daemonset" "traefik" {
   depends_on = [kubernetes_manifest.traefik_crds]
 
   metadata {
@@ -181,8 +178,6 @@ resource "kubernetes_deployment" "traefik" {
   }
 
   spec {
-    replicas = var.replicas
-
     selector {
       match_labels = {
         app = var.release_name
@@ -211,12 +206,14 @@ resource "kubernetes_deployment" "traefik" {
           port {
             name           = "web"
             container_port = 80
+            host_port      = 80  # 直接映射到主机的 80 端口
             protocol       = "TCP"
           }
 
           port {
             name           = "websecure"
             container_port = 443
+            host_port      = 443  # 直接映射到主机的 443 端口
             protocol       = "TCP"
           }
 
