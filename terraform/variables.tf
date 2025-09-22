@@ -98,10 +98,10 @@ variable "portainer_release_name" {
   default     = "portainer"
 }
 
-variable "portainer_chart_version" {
-  description = "Portainer Helm Chart 版本"
+variable "portainer_image_tag" {
+  description = "Portainer 镜像版本"
   type        = string
-  default     = "1.0.47"
+  default     = "2.19.4"
 }
 
 variable "portainer_external_port" {
@@ -215,6 +215,12 @@ variable "prometheus_evaluation_interval" {
   default     = "30s"
 }
 
+variable "prometheus_alertmanager_url" {
+  description = "Alertmanager URL（可选，留空表示不配置告警）"
+  type        = string
+  default     = "http://alertmanager.infra.svc.cluster.local:9093"
+}
+
 # Grafana 配置
 variable "grafana_chart_version" {
   description = "Grafana Helm Chart 版本"
@@ -275,6 +281,12 @@ variable "grafana_cpu_limit" {
   description = "Grafana CPU 限制"
   type        = string
   default     = "250m"
+}
+
+variable "grafana_prometheus_url" {
+  description = "Prometheus URL（可选，留空表示不自动配置）"
+  type        = string
+  default     = "http://prometheus.infra.svc.cluster.local:9090"
 }
 
 variable "grafana_plugins" {

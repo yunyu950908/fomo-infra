@@ -38,24 +38,52 @@ terraform init
 terraform validate
 ```
 
-### 2. 查看部署计划
+### 2. 分步部署（推荐）
+
+#### Step 1: 部署 K3s
 
 ```bash
-# 查看即将创建的资源
-terraform plan
+# 先部署 K3s 基础环境
+terraform apply -target=module.k3s
 
-# 保存计划到文件（推荐生产环境）
-terraform plan -out=tfplan
+# 验证 K3s 状态
+kubectl get nodes
+kubectl get pods -n kube-system
 ```
 
-### 3. 执行部署
+#### Step 2: 部署核心组件（可选）
+
+```bash
+# 部署容器管理平台
+terraform apply -target=module.portainer
+
+# 部署路由器
+terraform apply -target=module.traefik
+```
+
+#### Step 3: 部署数据库（可选）
+
+```bash
+# 逐个部署数据库
+terraform apply -target=module.mongodb
+terraform apply -target=module.redis
+terraform apply -target=module.rabbitmq
+```
+
+#### Step 4: 部署监控（可选）
+
+```bash
+# 部署监控栈
+terraform apply -target=module.prometheus
+terraform apply -target=module.grafana
+terraform apply -target=module.alertmanager
+```
+
+### 3. 一键部署（可选）
 
 ```bash
 # 部署所有资源
 terraform apply
-
-# 使用保存的计划部署
-terraform apply tfplan
 
 # 自动批准部署（谨慎使用）
 terraform apply -auto-approve

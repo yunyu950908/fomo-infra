@@ -17,11 +17,17 @@ terraform {
 # 创建 K3s 配置文件
 resource "local_file" "k3s_config" {
   content = templatefile("${path.module}/templates/config.yaml.tpl", {
-    cluster_cidr     = var.cluster_cidr
-    service_cidr     = var.service_cidr
-    cluster_dns      = var.cluster_dns
-    disabled_addons  = var.disabled_addons
-    flannel_backend  = var.flannel_backend
+    k3s_version        = var.k3s_version
+    cluster_cidr       = var.cluster_cidr
+    service_cidr       = var.service_cidr
+    cluster_dns        = var.cluster_dns
+    disabled_addons    = var.disabled_addons
+    flannel_backend    = var.flannel_backend
+    max_pods           = var.max_pods
+    memory_threshold   = var.memory_threshold
+    disk_threshold     = var.disk_threshold
+    inode_threshold    = var.inode_threshold
+    imagefs_threshold  = var.imagefs_threshold
   })
   filename        = "/tmp/k3s-config.yaml"
   file_permission = "0644"
@@ -95,7 +101,7 @@ resource "null_resource" "install_k3s" {
     command = <<-EOT
       echo "等待 K3s 启动..."
       for i in {1..30}; do
-        if kubectl get nodes >/dev/null 2>&1; then
+        if sudo k3s kubectl get nodes >/dev/null 2>&1; then
           echo "K3s 已就绪!"
           break
         fi
@@ -110,13 +116,15 @@ resource "null_resource" "install_k3s" {
 resource "null_resource" "configure_storage" {
   depends_on = [
     null_resource.install_k3s,
-    local_file.local_path_config
+    local_file.local_path_config,
+    null_resource.setup_kubeconfig
   ]
 
   provisioner "local-exec" {
     command = <<-EOT
-      kubectl apply -f ${local_file.local_path_config.filename}
-      kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+      export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+      sudo k3s kubectl apply -f ${local_file.local_path_config.filename}
+      sudo k3s kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
     EOT
   }
 }
@@ -152,10 +160,15 @@ resource "local_file" "uninstall_script" {
   content = templatefile("${path.module}/templates/uninstall.sh.tpl", {
     storage_path = var.storage_path
   })
-  filename        = "/usr/local/bin/k3s-fomo-uninstall.sh"
+  filename        = "/tmp/k3s-fomo-uninstall.sh"
   file_permission = "0755"
+}
+
+# 复制卸载脚本到系统目录
+resource "null_resource" "copy_uninstall_script" {
+  depends_on = [local_file.uninstall_script]
 
   provisioner "local-exec" {
-    command = "sudo cp ${self.filename} /usr/local/bin/k3s-fomo-uninstall.sh && sudo chmod +x /usr/local/bin/k3s-fomo-uninstall.sh"
+    command = "sudo cp ${local_file.uninstall_script.filename} /usr/local/bin/k3s-fomo-uninstall.sh && sudo chmod +x /usr/local/bin/k3s-fomo-uninstall.sh"
   }
 }
