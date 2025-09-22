@@ -163,7 +163,7 @@ data "external" "cluster_info" {
   depends_on = [null_resource.install_k3s]
 
   program = ["bash", "-c", <<-EOT
-    NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || echo "")
+    NODE_IP=$(k3s kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}' 2>/dev/null || echo "")
     echo "{\"node_ip\":\"$NODE_IP\"}"
   EOT
   ]
